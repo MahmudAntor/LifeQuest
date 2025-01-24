@@ -1,52 +1,72 @@
+from models.quest import Quest
+from models.user_quest import UserQuest
 from Quest.daily_quest import DailyQuest
+
 
 class QuestManager:
     """
-    QuestManager class handles creation, management, and retrieval of daily and custom quests.
-    Attributes:
-        base_daily_quests (list): A predefined list of daily quests for the player.
-        custom_quests (list): A list to store custom quests created by the player.
-    Methods:
-        add_custom_quest(name, description, xp_reward): Adds a new custom quest to the list.
-        get_base_daily_quests(): Returns a list of base daily quests.
-        get_custom_quests(): Returns a list of all custom quests.
-        get_all_quests(): Returns a combined list of base daily quests and custom quests.
-        remove_quest(name): Removes a custom quest by name.
+    Manages quests for LifeQuest.
     """
-    def __init__(self):
-        # Initialize the base daily quests when the QuestManager is created.
-        self.base_daily_quests = [
-            DailyQuest("Read a book for 10 minutes", "Improve knowledge and reduce stress.", 50),
-            DailyQuest("Do 5 push-ups", "Boost physical health and energy.", 30),
-            DailyQuest("Meditate for 5 minutes", "Enhance mental clarity and reduce stress.", 40),
-            DailyQuest("Take a 10-minute walk", "Improve mood and health.", 30),
-            DailyQuest("Write in a journal for 5 minutes", "Reflect and improve self-awareness.", 40)
-        ]
-        self.custom_quests = []
 
-    def get_base_daily_quests(self):
-        """Returns a list of base daily quests."""
-        return self.base_daily_quests
+    def add_custom_quest(self, quest_id, name, description, xp_reward):
+        """
+        Adds a new quest to the Quest model.
+        """
+        quest = Quest(quest_id=quest_id, name=name, description=description, xp_reward=xp_reward)
+        quest.save()
 
-    def add_custom_quest(self, name, description, xp_reward):
-        """Adds a new custom quest to the custom quest list."""
-        new_quest = DailyQuest(name, description, xp_reward)
-        self.custom_quests.append(new_quest)
-        print(f"Custom quest '{name}' added with {xp_reward} XP reward.")
+    def assign_quest_to_user(self, user_id, quest_id):
+        """
+        Assigns a quest to a user by adding an entry in UserQuest.
+        """
+        quest_data = Quest.get(quest_id)
+        if quest_data:
+            user_quest = UserQuest(user_id=user_id, quest_id=quest_id, status="In Progress")
+            user_quest.save()
+        else:
+            print(f"Quest with ID {quest_id} not found.")
 
-    def get_custom_quests(self):
-        """Returns a list of all custom quests."""
-        return self.custom_quests
+    def get_user_quests(self, user_id):
+        """
+        Retrieves all quests assigned to a user with progress information.
+        """
+        user_quests = UserQuest.get_all_for_user(user_id)
+        quests = []
+        for user_quest in user_quests:
+            quest = Quest.get(user_quest['QuestID'])
+            if quest:
+                quests.append(DailyQuest(
+                    quest_id=quest['QuestID'],
+                    name=quest['Name'],
+                    description=quest['Description'],
+                    xp_reward=quest['XP_Reward'],
+                    user_id=user_id
+                ))
+        return quests
 
     def get_all_quests(self):
-        """Returns a combined list of all base daily quests and custom quests."""
-        return self.base_daily_quests + self.custom_quests
+        """
+        Retrieves all available quests from the Quest model.
+        """
+        quests = Quest.get_all()  # Add this method in Quest model
+        return [DailyQuest(
+            quest_id=quest['QuestID'],
+            name=quest['Name'],
+            description=quest['Description'],
+            xp_reward=quest['XP_Reward']
+        ) for quest in quests]
 
-    def remove_quest(self, name):
-        """Removes a custom quest by name if it exists."""
-        for quest in self.custom_quests:
-            if quest.name.lower() == name.lower():
-                self.custom_quests.remove(quest)
-                print(f"Custom quest '{name}' removed.")
-                return
-        print(f"Custom quest '{name}' not found.")
+    def complete_user_quest(self, user_id, quest_id):
+        """
+        Marks a quest as completed for a user and returns the XP gained.
+        """
+        user_quest = UserQuest.get(user_id, quest_id)
+        if user_quest and user_quest['Status'] != "Completed":
+            # Update the quest's status in UserQuest
+            UserQuest.update_status(user_id, quest_id, status="Completed")
+            
+            # Fetch the quest's XP reward
+            quest = Quest.get(quest_id)
+            if quest:
+                return quest['XP_Reward']
+        return 0

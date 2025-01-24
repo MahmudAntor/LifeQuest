@@ -1,11 +1,12 @@
 # LifeQuest Development Roadmap
 
 ## Current Stage
-- Implemented core classes for player and quest management.
+- Integrated AWS DynamoDB for persistent data storage.
+- Refactored models (`User`, `Quest`, `UserQuest`) to interact with the database.
 - Established a modular project structure.
 
 ## Upcoming Milestones
-1. **Feature Expansion**: Add more game mechanics like rewards, achievements, and levels.
-2. **Persistence**: Integrate a database to store player and quest data.
-3. **Frontend Development**: Build a frontend interface using a web framework like React.
-4. **Deployment**: Set up continuous integration and deployment using GitHub Actions.
+1. **Feature Expansion**: Add more game mechanics like streak tracking, achievements, and leaderboard systems.
+2. **Frontend Development**: Build a frontend interface using a web framework like React or Vue.js.
+3. **Machine Learning**: Implement personalized habit recommendations using ML models.
+4. **Deployment**: Set up CI/CD pipelines using GitHub Actions for automated testing and deployment.

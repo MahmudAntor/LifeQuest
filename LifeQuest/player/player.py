@@ -1,4 +1,7 @@
 from Quest.quest_manager import QuestManager
+from models.user import User
+from models.user_quest import UserQuest
+
 
 class Player:
     """
@@ -12,13 +15,17 @@ class Player:
         display_stats(): Displays the player's stats.
         gain_xp(amount): Adds XP to the player and handles level-up logic.
         show_all_quests(): Displays the list of all quests.
-        complete_quest(quest_name): Completes a quest by name and returns XP gained.
+        complete_quest(quest_id): Completes a quest by ID and returns XP gained.
         add_custom_quest(): Adds a custom quest using the QuestManager.
+        save(): Saves the player data using the User model.
+        load(user_id): Loads a player from the database using the User model.
     """
-    def __init__(self, name):
+
+    def __init__(self, user_id, name, level=1, xp=0):
+        self.user_id = user_id
         self.name = name
-        self.level = 1
-        self.xp = 0
+        self.level = level
+        self.xp = xp
         self.quest_manager = QuestManager()  # Initialize QuestManager
 
     def display_stats(self):
@@ -48,26 +55,48 @@ class Player:
 
     def total_quests_completed(self):
         """Calculates total completed quests."""
-        return len([quest for quest in self.quest_manager.get_all_quests() if quest.completed])
+        user_quests = UserQuest.get_all_for_user(self.user_id)
+        return len([quest for quest in user_quests if quest['Status'] == "Completed"])
 
     def show_all_quests(self):
         """Displays the list of all quests (base daily and custom) and their status."""
         print("\nAll Quests:")
         print("-----------")
-        for quest in self.quest_manager.get_all_quests():
-            print(quest)
+        user_quests = self.quest_manager.get_user_quests(self.user_id)
+        for quest in user_quests:
+            print(f"{quest.name}: {quest.description} (XP: {quest.xp_reward})")
 
-    def complete_quest(self, quest_name):
-        """Completes a quest by name and returns the XP gained."""
-        for quest in self.quest_manager.get_all_quests():
-            if quest.name.lower() == quest_name.lower() and not quest.completed:
-                xp_gained = quest.complete_quest()
-                print(f"Quest '{quest.name}' completed! Gained {xp_gained} XP.")
-                self.gain_xp(xp_gained)
-                return xp_gained
-        print(f"Quest '{quest_name}' not found or already completed.")
+    def complete_quest(self, quest_id):
+        """Completes a quest by ID and returns the XP gained."""
+        user_quest = UserQuest.get(self.user_id, quest_id)
+        if user_quest and user_quest['Status'] != "Completed":
+            xp_gained = self.quest_manager.complete_user_quest(self.user_id, quest_id)
+            self.gain_xp(xp_gained)
+            self.save()  # Save the updated player state
+            print(f"Quest '{quest_id}' completed! Gained {xp_gained} XP.")
+            return xp_gained
+        print(f"Quest '{quest_id}' not found or already completed.")
         return 0
 
-    def add_custom_quest(self, name, description, xp_reward):
+    def add_custom_quest(self, quest_id, name, description, xp_reward):
         """Adds a new custom quest through QuestManager."""
-        self.quest_manager.add_custom_quest(name, description, xp_reward)
+        self.quest_manager.add_custom_quest(quest_id, name, description, xp_reward)
+
+    def save(self):
+        """Saves the player data to the database using the User model."""
+        user = User(user_id=self.user_id, name=self.name, level=self.level, xp=self.xp)
+        user.save()
+
+    @classmethod
+    def load(cls, user_id):
+        """Loads a player from the database using the User model."""
+        user_data = User.get(user_id)
+        if user_data:
+            return cls(
+                user_id=user_data['UserID'],
+                name=user_data['Name'],
+                level=user_data['Level'],
+                xp=user_data['XP']
+            )
+        print(f"Player with ID '{user_id}' not found in the database.")
+        return None

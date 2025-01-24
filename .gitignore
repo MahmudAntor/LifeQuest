@@ -6,6 +6,8 @@ __pycache__/
 # Ignore virtual environment directories
 venv/
 env/
+myenv/
+
 
 # Ignore system files
 .DS_Store
@@ -13,6 +15,7 @@ env/
 # Ignore configuration files
 *.log
 *.tmp
+*.ini
 
 # Ignore IDE specific directories and files
 .vscode/
