@@ -35,13 +35,15 @@ class QuestManager:
         for user_quest in user_quests:
             quest = Quest.get(user_quest['QuestID'])
             if quest:
-                quests.append(DailyQuest(
+                daily_quest = DailyQuest(
                     quest_id=quest['QuestID'],
                     name=quest['Name'],
                     description=quest['Description'],
                     xp_reward=quest['XP_Reward'],
                     user_id=user_id
-                ))
+                )
+                daily_quest.status = user_quest['Status']
+                quests.append(daily_quest)
         return quests
 
     def get_all_quests(self):

@@ -1,0 +1,5 @@
+[llm]
+api_key = api_key
+api_url = api_url
+model = model
+
